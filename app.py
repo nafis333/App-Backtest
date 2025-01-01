@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 import os
 import pandas as pd
 from datetime import datetime
+from calendar import monthrange
 
 app = Flask(__name__)
 
@@ -65,10 +66,10 @@ def validate_trade_inputs(entry_price, stoploss_price, takeprofit_price, trade_t
     return None
 
 # Function to monitor trade and check SL/TP conditions
-def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tolerance=0.1):
+def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, breakeven):
     entry_price = get_closing_price(entry_time.year, entry_time.month, entry_time.day, entry_time.hour, entry_time.minute)
     if entry_price is None:
-        return ["No data found for the specified entry time."]
+        return ["No data found for the specified entry time. Possible reasons: incorrect date/time or missing data in the CSV file."]
 
     validation_error = validate_trade_inputs(entry_price, stoploss_price, takeprofit_price, trade_type)
     if validation_error:
@@ -93,7 +94,7 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tole
         current_time = row['Local time']
 
         if trade_type.lower() == 'buy':
-            if current_high >= takeprofit_price - tolerance:
+            if current_high >= takeprofit_price - 0.1:
                 runtime = current_time - entry_time
                 formatted_runtime = format_runtime(runtime)
                 tp_pips_hit = calculate_pips(entry_price, takeprofit_price)
@@ -101,7 +102,7 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tole
                 results.append(f"Take Profit hit: {takeprofit_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
                 results.append(f"PnL: {rr:.2f}R\n")
                 break
-            elif current_low <= stoploss_price + tolerance:
+            elif current_low <= stoploss_price + 0.1:
                 runtime = current_time - entry_time
                 formatted_runtime = format_runtime(runtime)
                 sl_pips_hit = calculate_pips(entry_price, stoploss_price)
@@ -110,7 +111,7 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tole
                 break
 
         elif trade_type.lower() == 'sell':
-            if current_low <= takeprofit_price + tolerance:
+            if current_low <= takeprofit_price + 0.1:
                 runtime = current_time - entry_time
                 formatted_runtime = format_runtime(runtime)
                 tp_pips_hit = calculate_pips(entry_price, takeprofit_price)
@@ -118,7 +119,7 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tole
                 results.append(f"Take Profit hit: {takeprofit_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
                 results.append(f"PnL: {rr:.2f}R\n")
                 break
-            elif current_high >= stoploss_price - tolerance:
+            elif current_high >= stoploss_price - 0.1:
                 runtime = current_time - entry_time
                 formatted_runtime = format_runtime(runtime)
                 sl_pips_hit = calculate_pips(entry_price, stoploss_price)
@@ -126,56 +127,134 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, tole
                 results.append(f"PnL: -1R\n")
                 break
 
-    three_r_pips = 3 * sl_pips
-    three_r_target = entry_price + three_r_pips / 10 if trade_type.lower() == 'buy' else entry_price - three_r_pips / 10
-    breakeven_triggered = False
-    results.append("(3R System)")
+    if breakeven:
+        three_r_pips = 3 * sl_pips
+        three_r_target = entry_price + three_r_pips / 10 if trade_type.lower() == 'buy' else entry_price - three_r_pips / 10
+        breakeven_triggered = False
+        results.append("(3R System)")
+        results.append(f"3R TP: {three_r_target:.3f} ({three_r_pips:.2f} pips)")
 
-    for _, row in df_filtered.iterrows():
-        current_high = row['High']
-        current_low = row['Low']
-        current_time = row['Local time']
+        for _, row in df_filtered.iterrows():
+            current_high = row['High']
+            current_low = row['Low']
+            current_time = row['Local time']
 
-        if trade_type.lower() == 'buy':
-            if not breakeven_triggered and current_high >= entry_price + sl_pips / 10 - tolerance:
-                breakeven_triggered = True
-                breakeven_runtime = current_time - entry_time
-                formatted_breakeven_runtime = format_runtime(breakeven_runtime)
-                results.append(f"Breakeven at: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
-            if breakeven_triggered and current_low <= entry_price + tolerance:
-                breakeven_runtime = current_time - entry_time
-                formatted_breakeven_runtime = format_runtime(breakeven_runtime)
-                results.append(f"Breakeven hit: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
-                return results
-            if current_high >= three_r_target - tolerance:
-                three_r_runtime = current_time - entry_time
-                formatted_three_r_runtime = format_runtime(three_r_runtime)
-                three_r_pips_hit = calculate_pips(entry_price, three_r_target)
-                results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
-                return results
+            if trade_type.lower() == 'buy':
+                # Check if SL is hit before breakeven
+                if current_low <= stoploss_price + 0.1:
+                    runtime = current_time - entry_time
+                    formatted_runtime = format_runtime(runtime)
+                    sl_pips_hit = calculate_pips(entry_price, stoploss_price)
+                    results.append(f"Stoploss hit: {stoploss_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
+                    results.append(f"PnL: -1R\n")
+                    return results
 
-        elif trade_type.lower() == 'sell':
-            if not breakeven_triggered and current_low <= entry_price - sl_pips / 10 + tolerance:
-                breakeven_triggered = True
-                breakeven_runtime = current_time - entry_time
-                formatted_breakeven_runtime = format_runtime(breakeven_runtime)
-                results.append(f"Breakeven at: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
-            if breakeven_triggered and current_high >= entry_price - tolerance:
-                breakeven_runtime = current_time - entry_time
-                formatted_breakeven_runtime = format_runtime(breakeven_runtime)
-                results.append(f"Breakeven hit: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
-                return results
-            if current_low <= three_r_target + tolerance:
-                three_r_runtime = current_time - entry_time
-                formatted_three_r_runtime = format_runtime(three_r_runtime)
-                three_r_pips_hit = calculate_pips(entry_price, three_r_target)
-                results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
-                return results
+                # Check breakeven trigger
+                if not breakeven_triggered and current_high >= entry_price + sl_pips / 10 - 0.1:
+                    breakeven_triggered = True
+                    breakeven_runtime = current_time - entry_time
+                    formatted_breakeven_runtime = format_runtime(breakeven_runtime)
+                    results.append(f"Breakeven at: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
 
-    last_time = df_filtered['Local time'].iloc[-1]
-    last_price = df_filtered['Close'].iloc[-1]
-    results.append(f"No SL/TP hit. Last price checked: {last_price:.3f} at {last_time.strftime('%I:%M %p (%d %B %Y)')}.")
-    return results
+                # Check breakeven hit
+                if breakeven_triggered and current_low <= entry_price + 0.1:
+                    breakeven_runtime = current_time - entry_time
+                    formatted_breakeven_runtime = format_runtime(breakeven_runtime)
+                    results.append(f"Breakeven hit: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
+                    return results
+
+                # Check 3R target hit
+                if current_high >= three_r_target - 0.1:
+                    three_r_runtime = current_time - entry_time
+                    formatted_three_r_runtime = format_runtime(three_r_runtime)
+                    three_r_pips_hit = calculate_pips(entry_price, three_r_target)
+                    results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
+                    return results
+
+            elif trade_type.lower() == 'sell':
+                # Check if SL is hit before breakeven
+                if current_high >= stoploss_price - 0.1:
+                    runtime = current_time - entry_time
+                    formatted_runtime = format_runtime(runtime)
+                    sl_pips_hit = calculate_pips(entry_price, stoploss_price)
+                    results.append(f"Stoploss hit: {stoploss_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
+                    results.append(f"PnL: -1R\n")
+                    return results
+
+                # Check breakeven trigger
+                if not breakeven_triggered and current_low <= entry_price - sl_pips / 10 + 0.1:
+                    breakeven_triggered = True
+                    breakeven_runtime = current_time - entry_time
+                    formatted_breakeven_runtime = format_runtime(breakeven_runtime)
+                    results.append(f"Breakeven at: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
+
+                # Check breakeven hit
+                if breakeven_triggered and current_high >= entry_price - 0.1:
+                    breakeven_runtime = current_time - entry_time
+                    formatted_breakeven_runtime = format_runtime(breakeven_runtime)
+                    results.append(f"Breakeven hit: {entry_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_breakeven_runtime}")
+                    return results
+
+                # Check 3R target hit
+                if current_low <= three_r_target + 0.1:
+                    three_r_runtime = current_time - entry_time
+                    formatted_three_r_runtime = format_runtime(three_r_runtime)
+                    three_r_pips_hit = calculate_pips(entry_price, three_r_target)
+                    results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
+                    return results
+                
+    else:
+        # Logic for when breakeven is False, but still use the 3R System
+        results.append("( 3R System (Without Breakeven) )")
+
+        # Calculate the 3R target
+        three_r_pips = 3 * sl_pips
+        three_r_target = entry_price + three_r_pips / 10 if trade_type.lower() == 'buy' else entry_price - three_r_pips / 10
+        results.append(f"3R TP: {three_r_target:.3f} ({three_r_pips:.2f} pips)")
+
+        for _, row in df_filtered.iterrows():
+            current_high = row['High']
+            current_low = row['Low']
+            current_time = row['Local time']
+
+            if trade_type.lower() == 'buy':
+                # Check if SL is hit before 3R
+                if current_low <= stoploss_price + 0.1:
+                    runtime = current_time - entry_time
+                    formatted_runtime = format_runtime(runtime)
+                    sl_pips_hit = calculate_pips(entry_price, stoploss_price)
+                    results.append(f"Stoploss hit: {stoploss_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
+                    results.append(f"PnL: -1R\n")
+                    return results
+
+                # Check if 3R target is hit
+                if current_high >= three_r_target - 0.1:
+                    three_r_runtime = current_time - entry_time
+                    formatted_three_r_runtime = format_runtime(three_r_runtime)
+                    three_r_pips_hit = calculate_pips(entry_price, three_r_target)
+                    results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
+                    return results
+
+            elif trade_type.lower() == 'sell':
+                # Check if SL is hit before 3R
+                if current_high >= stoploss_price - 0.1:
+                    runtime = current_time - entry_time
+                    formatted_runtime = format_runtime(runtime)
+                    sl_pips_hit = calculate_pips(entry_price, stoploss_price)
+                    results.append(f"Stoploss hit: {stoploss_price:.3f} | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_runtime}")
+                    results.append(f"PnL: -1R\n")
+                    return results
+
+                # Check if 3R target is hit
+                if current_low <= three_r_target + 0.1:
+                    three_r_runtime = current_time - entry_time
+                    formatted_three_r_runtime = format_runtime(three_r_runtime)
+                    three_r_pips_hit = calculate_pips(entry_price, three_r_target)
+                    results.append(f"3R hit: {three_r_target:.3f} ({three_r_pips_hit:.2f} pips) | Time: {current_time.strftime('%I:%M %p (%d %B %Y)')} | Runtime: {formatted_three_r_runtime}")
+                    return results
+
+    return ["Neither Stoploss nor 3R Take Profit was hit within the given data range."]
+   
 
 @app.route('/')
 def index():
@@ -184,21 +263,54 @@ def index():
 @app.route('/monitor_trade', methods=['POST'])
 def monitor_trade_route():
     try:
+        # Extract and validate input values
         year = int(request.form['year'])
         month = int(request.form['month'])
         day = int(request.form['day'])
         hour = int(request.form['hour'])
         minute = int(request.form['minute'])
+
+        # Validate month, day, hour, minute
+        if not (1 <= month <= 12):
+            raise ValueError("Month must be between 1 and 12.")
+        
+        # Validate day according to the month
+        _, days_in_month = monthrange(year, month)
+        if not (1 <= day <= days_in_month):
+            raise ValueError(f"Day must be between 1 and {days_in_month} for the given month.")
+        
+        if not (0 <= hour <= 23):
+            raise ValueError("Hour must be between 0 and 23.")
+        if not (0 <= minute <= 59):
+            raise ValueError("Minute must be between 0 and 59.")
+
         entry_time = pd.Timestamp(year, month, day, hour, minute)
 
+        # Validate trade type
         trade_type = request.form['trade_type'].strip().lower()
+        if trade_type not in ['buy', 'sell']:
+            raise ValueError("Trade type must be 'buy' or 'sell'.")
+
+        # Validate stoploss and takeprofit prices
         stoploss_price = float(request.form['stoploss_price'])
         takeprofit_price = float(request.form['takeprofit_price'])
 
-        results = monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type)
+        # Validate breakeven input
+        breakeven_input = request.form['breakeven'].strip().lower()
+        breakeven = breakeven_input in ['true', '1', 'yes']
+
+        # Call the monitoring logic
+        results = monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, breakeven)
+
         return render_template('results.html', results=results)
+
     except ValueError as ve:
-        return f"Invalid input: {ve}"
+        # Render error back to the form with an error message
+        return render_template('index.html', error=f"Invalid input: {ve}")
+    except Exception as e:
+        # Log unexpected errors and show a generic error page
+        print(f"Unexpected error: {e}")  # Replace with proper logging
+        return render_template('error.html', error="An unexpected error occurred. Please try again later.")
 
 if __name__ == '__main__':
     app.run(debug=True)

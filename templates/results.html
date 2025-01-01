@@ -10,38 +10,74 @@
             color: #f0f0f0;
             font-family: 'Arial', sans-serif;
             margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             padding: 20px;
+            text-align: center;
         }
         h1 {
             font-weight: bold;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+        }
+        .results-container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 30px;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
         }
         ul {
             list-style-type: none;
             padding: 0;
+            width: 100%;
+            margin-bottom: 30px;
         }
         li {
-            background-color: #3c3c3c;
             margin: 5px 0;
             padding: 10px;
+        }
+        a.button {
+            background-color: #1e90ff;
+            color: #fff;
+            border: none;
             border-radius: 5px;
-        }
-        a {
-            color: #1e90ff;
-            text-decoration: none;
+            padding: 18px;
+            cursor: pointer;
             font-weight: bold;
+            font-size: 1.2rem;
+            width: 100%;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
-        a:hover {
-            text-decoration: underline;
+        a.button:hover {
+            background-color: #1c86ee;
+        }
+        .error {
+            color: #ff6f61;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 1.1rem;
         }
     </style>
 </head>
 <body>
-    <h1>Trade Results</h1>
-    <ul>
-        {% for result in results %}
-            <li>{{ result }}</li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('index') }}">Back to Trade Monitor</a>
+    <div class="results-container">
+        <h1>Trade Results</h1>
+        <ul>
+            {% for result in results %}
+                <li>{{ result }}</li>
+            {% endfor %}
+        </ul>
+        <a href="{{ url_for('index') }}" class="button">Back to Trade Monitor</a>
+    </div>
 </body>
 </html>
