@@ -1,8 +1,13 @@
 from flask import Flask, render_template, request
 import os
 import pandas as pd
+<<<<<<< HEAD
 from calendar import monthrange
 import traceback
+=======
+from datetime import datetime
+from calendar import monthrange
+>>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
 
 app = Flask(__name__)
 
@@ -266,6 +271,10 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, brea
                     return results
 
     return ["Neither Stoploss nor 3R Take Profit was hit within the given data range."]
+<<<<<<< HEAD
+=======
+   
+>>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
 
 @app.route('/')
 def index():
@@ -302,6 +311,7 @@ def monitor_trade_route():
         if trade_type not in ['buy', 'sell']:
             raise ValueError("Trade type must be 'buy' or 'sell'.")
 
+<<<<<<< HEAD
         # Extract input type and validate
         input_type = request.form['input_type'].strip().lower()
         if input_type not in ['prices', 'pips']:
@@ -335,16 +345,35 @@ def monitor_trade_route():
         # Call the monitoring logic
         results = monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, breakeven)
 
+=======
+        # Validate stoploss and takeprofit prices
+        stoploss_price = float(request.form['stoploss_price'])
+        takeprofit_price = float(request.form['takeprofit_price'])
+
+        # Validate breakeven input
+        breakeven_input = request.form['breakeven'].strip().lower()
+        breakeven = breakeven_input in ['true', '1', 'yes']
+
+        # Call the monitoring logic
+        results = monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, breakeven)
+
+>>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
         return render_template('results.html', results=results)
 
     except ValueError as ve:
         # Render error back to the form with an error message
         return render_template('index.html', error=f"Invalid input: {ve}")
     except Exception as e:
+<<<<<<< HEAD
         # Log unexpected errors and show a generic error page with detailed information
         error_info = traceback.format_exc()
         print(f"Unexpected error: {e}\n{error_info}")  # Replace with proper logging
         return render_template('error.html', error=f"An unexpected error occurred: {e}", error_info=error_info)
+=======
+        # Log unexpected errors and show a generic error page
+        print(f"Unexpected error: {e}")  # Replace with proper logging
+        return render_template('error.html', error="An unexpected error occurred. Please try again later.")
+>>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
 
 if __name__ == '__main__':
     app.run(debug=True)
