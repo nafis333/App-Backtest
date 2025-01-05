@@ -99,11 +99,7 @@
             font-size: 1.5rem;
             font-weight: bold;
             margin-bottom: 15px;
-<<<<<<< HEAD
             color: #1e90ff;
-=======
-            color: #1e90ff; /* Appealing color for header */
->>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
         }
     </style>
    <script>
@@ -135,7 +131,6 @@
                 <div class="section">
                     <fieldset>
                         <legend>Date and Time</legend>
-<<<<<<< HEAD
                         <!-- Existing Date and Time Inputs -->
                         <div class="input-row">
                             <label for="year">Year:</label>
@@ -156,27 +151,6 @@
                         <div class="input-row">
                             <label for="minute">Minute:</label>
                             <input type="number" id="minute" name="minute" min="0" max="59" required>
-=======
-                        <div class="input-row">
-                            <label for="year">Year:</label>
-                            <input type="number" id="year" name="year" min="2000" max="2100" required aria-label="Year">
-                        </div>
-                        <div class="input-row">
-                            <label for="month">Month:</label>
-                            <input type="number" id="month" name="month" min="1" max="12" required aria-label="Month">
-                        </div>
-                        <div class="input-row">
-                            <label for="day">Day:</label>
-                            <input type="number" id="day" name="day" min="1" max="31" required aria-label="Day">
-                        </div>
-                        <div class="input-row">
-                            <label for="hour">Hour (24-hour format):</label>
-                            <input type="number" id="hour" name="hour" min="0" max="23" required aria-label="Hour">
-                        </div>
-                        <div class="input-row">
-                            <label for="minute">Minute:</label>
-                            <input type="number" id="minute" name="minute" min="0" max="59" required aria-label="Minute">
->>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
                         </div>
                     </fieldset>
                 </div>
@@ -188,18 +162,13 @@
                         <legend>Trade Details</legend>
                         <div class="input-row">
                             <label for="trade_type">Trade Type:</label>
-<<<<<<< HEAD
                             <select id="trade_type" name="trade_type" required>
-=======
-                            <select id="trade_type" name="trade_type" required aria-label="Trade Type">
->>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
                                 <option value="">Select</option>
                                 <option value="buy">Buy</option>
                                 <option value="sell">Sell</option>
                             </select>
                         </div>
                         <div class="input-row">
-<<<<<<< HEAD
                             <label for="input_type">Input Type:</label>
                             <select id="input_type" name="input_type" onchange="toggleInputType()" required>
                                 <option value="">Select</option>
@@ -230,18 +199,6 @@
                         <div class="input-row">
                             <label for="breakeven">Breakeven:</label>
                             <select id="breakeven" name="breakeven" required>
-=======
-                            <label for="stoploss_price">Stop Loss Price:</label>
-                            <input type="number" step="0.01" id="stoploss_price" name="stoploss_price" required aria-label="Stop Loss Price">
-                        </div>
-                        <div class="input-row">
-                            <label for="takeprofit_price">Take Profit Price:</label>
-                            <input type="number" step="0.01" id="takeprofit_price" name="takeprofit_price" required aria-label="Take Profit Price">
-                        </div>
-                        <div class="input-row">
-                            <label for="breakeven">Breakeven:</label>
-                            <select id="breakeven" name="breakeven" required aria-label="Breakeven">
->>>>>>> e953132e0662fb17de42da042b800a3aff59b30c
                                 <option value="">Select</option>
                                 <option value="true">True</option>
                                 <option value="false">False</option>
