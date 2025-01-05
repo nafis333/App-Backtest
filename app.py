@@ -1,23 +1,35 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 import os
 import pandas as pd
-from datetime import datetime
 from calendar import monthrange
+import traceback
 
 app = Flask(__name__)
 
-# Load the CSV file
-file_path = "xauusd.csv"
-if not os.path.exists(file_path):
-    raise FileNotFoundError(f"File not found: {file_path}")
+# Function to find the first .parquet file containing "xauusd" in its name (case-insensitive)
+def find_xauusd_parquet_file():
+    files_in_directory = os.listdir()
+    for file_name in files_in_directory:
+        if "xauusd" in file_name.lower() and file_name.lower().endswith(".parquet"):
+            return file_name
+    return None
 
-df = pd.read_csv(file_path)
+# Find the .parquet file
+file_path = find_xauusd_parquet_file()
+if not file_path:
+    raise FileNotFoundError("No .parquet file containing 'xauusd' found in the current directory.")
+
+# Load the .parquet file
+df = pd.read_parquet(file_path)
 
 # Convert 'Local time' column to datetime
 try:
     df['Local time'] = pd.to_datetime(df['Local time'], format='%d.%m.%Y %H:%M:%S')
 except Exception as e:
     raise ValueError(f"Error parsing 'Local time' column: {e}")
+
+# Drop rows with NaN values in the 'Open', 'High', 'Low', 'Close' columns
+df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
 # Function to get the closing price for a specific date and time
 def get_closing_price(year, month, day, hour, minute):
@@ -254,7 +266,6 @@ def monitor_trade(entry_time, stoploss_price, takeprofit_price, trade_type, brea
                     return results
 
     return ["Neither Stoploss nor 3R Take Profit was hit within the given data range."]
-   
 
 @app.route('/')
 def index():
@@ -291,9 +302,31 @@ def monitor_trade_route():
         if trade_type not in ['buy', 'sell']:
             raise ValueError("Trade type must be 'buy' or 'sell'.")
 
-        # Validate stoploss and takeprofit prices
-        stoploss_price = float(request.form['stoploss_price'])
-        takeprofit_price = float(request.form['takeprofit_price'])
+        # Extract input type and validate
+        input_type = request.form['input_type'].strip().lower()
+        if input_type not in ['prices', 'pips']:
+            raise ValueError("Input type must be 'prices' or 'pips'.")
+
+        # Get the entry price for the given entry time
+        entry_price = get_closing_price(entry_time.year, entry_time.month, entry_time.day, entry_time.hour, entry_time.minute)
+        if entry_price is None:
+            raise ValueError("No data found for the specified entry time.")
+
+        # Validate and convert stoploss and takeprofit inputs based on input type
+        if input_type == 'prices':
+            stoploss_price = float(request.form['stoploss_price'])
+            takeprofit_price = float(request.form['takeprofit_price'])
+        elif input_type == 'pips':
+            stoploss_pips = float(request.form['stoploss_pips'])
+            takeprofit_pips = float(request.form['takeprofit_pips'])
+            if trade_type == 'buy':
+                stoploss_price = entry_price - stoploss_pips / 10
+                takeprofit_price = entry_price + takeprofit_pips / 10
+            elif trade_type == 'sell':
+                stoploss_price = entry_price + stoploss_pips / 10
+                takeprofit_price = entry_price - takeprofit_pips / 10
+        else:
+            raise ValueError("Invalid input type.")
 
         # Validate breakeven input
         breakeven_input = request.form['breakeven'].strip().lower()
@@ -308,9 +341,10 @@ def monitor_trade_route():
         # Render error back to the form with an error message
         return render_template('index.html', error=f"Invalid input: {ve}")
     except Exception as e:
-        # Log unexpected errors and show a generic error page
-        print(f"Unexpected error: {e}")  # Replace with proper logging
-        return render_template('error.html', error="An unexpected error occurred. Please try again later.")
+        # Log unexpected errors and show a generic error page with detailed information
+        error_info = traceback.format_exc()
+        print(f"Unexpected error: {e}\n{error_info}")  # Replace with proper logging
+        return render_template('error.html', error=f"An unexpected error occurred: {e}", error_info=error_info)
 
 if __name__ == '__main__':
     app.run(debug=True)

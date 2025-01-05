@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Monitor</title>
     <style>
+        /* Existing styles */
         body {
             background-color: #2c2c2c;
             color: #f0f0f0;
@@ -98,9 +99,26 @@
             font-size: 1.5rem;
             font-weight: bold;
             margin-bottom: 15px;
-            color: #1e90ff; /* Appealing color for header */
+            color: #1e90ff;
         }
     </style>
+   <script>
+    // JavaScript to toggle input type
+    function toggleInputType() {
+        const inputType = document.getElementById('input_type').value;
+        const priceInputs = document.getElementById('price_inputs');
+        const pipInputs = document.getElementById('pip_inputs');
+
+        if (inputType === 'pips') {
+            priceInputs.style.display = 'none';
+            pipInputs.style.display = 'block';
+        } else {
+            priceInputs.style.display = 'block';
+            pipInputs.style.display = 'none';
+        }
+    }
+</script>
+    </script>
 </head>
 <body>
     <div class="form-container">
@@ -113,25 +131,26 @@
                 <div class="section">
                     <fieldset>
                         <legend>Date and Time</legend>
+                        <!-- Existing Date and Time Inputs -->
                         <div class="input-row">
                             <label for="year">Year:</label>
-                            <input type="number" id="year" name="year" min="2000" max="2100" required aria-label="Year">
+                            <input type="number" id="year" name="year" min="2000" max="2100" required>
                         </div>
                         <div class="input-row">
                             <label for="month">Month:</label>
-                            <input type="number" id="month" name="month" min="1" max="12" required aria-label="Month">
+                            <input type="number" id="month" name="month" min="1" max="12" required>
                         </div>
                         <div class="input-row">
                             <label for="day">Day:</label>
-                            <input type="number" id="day" name="day" min="1" max="31" required aria-label="Day">
+                            <input type="number" id="day" name="day" min="1" max="31" required>
                         </div>
                         <div class="input-row">
                             <label for="hour">Hour (24-hour format):</label>
-                            <input type="number" id="hour" name="hour" min="0" max="23" required aria-label="Hour">
+                            <input type="number" id="hour" name="hour" min="0" max="23" required>
                         </div>
                         <div class="input-row">
                             <label for="minute">Minute:</label>
-                            <input type="number" id="minute" name="minute" min="0" max="59" required aria-label="Minute">
+                            <input type="number" id="minute" name="minute" min="0" max="59" required>
                         </div>
                     </fieldset>
                 </div>
@@ -143,23 +162,43 @@
                         <legend>Trade Details</legend>
                         <div class="input-row">
                             <label for="trade_type">Trade Type:</label>
-                            <select id="trade_type" name="trade_type" required aria-label="Trade Type">
+                            <select id="trade_type" name="trade_type" required>
                                 <option value="">Select</option>
                                 <option value="buy">Buy</option>
                                 <option value="sell">Sell</option>
                             </select>
                         </div>
                         <div class="input-row">
-                            <label for="stoploss_price">Stop Loss Price:</label>
-                            <input type="number" step="0.01" id="stoploss_price" name="stoploss_price" required aria-label="Stop Loss Price">
+                            <label for="input_type">Input Type:</label>
+                            <select id="input_type" name="input_type" onchange="toggleInputType()" required>
+                                <option value="">Select</option>
+                                <option value="prices">Prices</option>
+                                <option value="pips">Pips</option>
+                            </select>
                         </div>
-                        <div class="input-row">
-                            <label for="takeprofit_price">Take Profit Price:</label>
-                            <input type="number" step="0.01" id="takeprofit_price" name="takeprofit_price" required aria-label="Take Profit Price">
+                        <div id="price_inputs" style="display: none;">
+                            <div class="input-row">
+                                <label for="stoploss_price">Stop Loss Price:</label>
+                                <input type="number" step="0.01" id="stoploss_price" name="stoploss_price">
+                            </div>
+                            <div class="input-row">
+                                <label for="takeprofit_price">Take Profit Price:</label>
+                                <input type="number" step="0.01" id="takeprofit_price" name="takeprofit_price">
+                            </div>
+                        </div>
+                        <div id="pip_inputs" style="display: none;">
+                            <div class="input-row">
+                                <label for="stoploss_pips">Stop Loss Pips:</label>
+                                <input type="number" step="0.1" id="stoploss_pips" name="stoploss_pips">
+                            </div>
+                            <div class="input-row">
+                                <label for="takeprofit_pips">Take Profit Pips:</label>
+                                <input type="number" step="0.1" id="takeprofit_pips" name="takeprofit_pips">
+                            </div>
                         </div>
                         <div class="input-row">
                             <label for="breakeven">Breakeven:</label>
-                            <select id="breakeven" name="breakeven" required aria-label="Breakeven">
+                            <select id="breakeven" name="breakeven" required>
                                 <option value="">Select</option>
                                 <option value="true">True</option>
                                 <option value="false">False</option>
